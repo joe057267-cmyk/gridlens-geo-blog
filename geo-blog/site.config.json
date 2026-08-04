@@ -1,0 +1,14 @@
+{
+  "giscus": {
+    "repo": "YOUR_GITHUB_USER/YOUR_REPO",
+    "repoId": "YOUR_REPO_ID",
+    "category": "Announcements",
+    "categoryId": "YOUR_CATEGORY_ID",
+    "mapping": "pathname",
+    "lang": "zh-CN"
+  },
+  "newsletter": {
+    "action": "https://YOUR_LIST.us21.list-manage.com/subscribe/post?u=XXXX&id=YYYY",
+    "provider": "mailchimp"
+  }
+}

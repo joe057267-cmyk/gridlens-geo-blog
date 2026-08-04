@@ -1,0 +1,104 @@
+# 加密组合回撤监控：从 SQLite 到实时看板
+
+盯一个网格机器人很容易。同时盯三个交易所上的十个，就不了。我学到的教训是：真正告诉你"是不是快受伤了"的数字，是**回撤**，不是每日盈亏。下面是我怎么从手搓的 SQLite 日志，走到实时监控，以及我会做哪些不一样的事。
+
+## 什么是回撤，为什么它比盈亏更重要？
+
+回撤是你**峰值权益**到**当前权益**的距离。每日盈亏可以天天看起来没问题，而回撤正悄悄爬向强平悬崖。回撤是早期预警信号；盈亏是计分牌。
+
+```
+drawdown = (peak_equity - current_equity) / peak_equity
+max_drawdown = max over time of drawdown
+```
+
+## 为什么监控组合，而不只是一个网格？
+
+一个网格可以是绿的，而另外两个在流血。组合层面的回撤，捕捉的是合并后的保证金压力。如果你各自独立给网格定仓位，会低估总风险——交易所看的是你的整个账户，而不是每个机器人孤立地看。
+
+## 朴素做法：SQLite + 定时任务
+
+早期我把权益每 5 分钟写进 SQLite，在夜间查询里算回撤。它管用，也教会了我这个指标。草图如下：
+
+```sql
+CREATE TABLE equity_snapshots (
+  ts        TIMESTAMPTZ PRIMARY KEY,
+  account   TEXT,
+  equity    NUMERIC
+);
+
+-- 单个账户的峰值与当前回撤
+WITH ranked AS (
+  SELECT ts, equity,
+         MAX(equity) OVER (ORDER BY ts) AS peak
+  FROM equity_snapshots
+  WHERE account = 'gate_main'
+)
+SELECT ts,
+       1 - equity / peak AS drawdown
+FROM ranked
+ORDER BY ts DESC
+LIMIT 1;
+```
+
+> 上面是单账户示例，账户标识我用的是 `gate_main`。多账户要按 `account` 分组，或用 `UNION` 把各所快照拼起来。真实接入时把 SQL 里的账户标识换成你自己的交易所/账户名。
+
+## 为什么轮询在规模化时会崩
+
+5 分钟一次的定时任务，对一个账户没问题。到了三个场所十个网格，每个周期你要打 30+ 次请求，处理限流，却仍然可能晚最多 5 分钟才看到回撤——而恰恰是快速变动最伤人的时候。轮询简单，但在两次 tick 之间是盲的。
+
+## 实时架构：Edge Function + Supabase + 推送
+
+对我而言能 scale 的模式是：
+
+1. 一个 Edge Function 以较短间隔拉取每家交易所（服务端，key 永不下浏览器）。
+2. 归一化成统一形状 `(account, equity, margin_used, unrealized)` 并 upsert 进 Supabase Postgres。
+3. 在数据库或视图里算回撤 / 保证金指标。
+4. 阈值击穿时推送告警——不需要人去轮询。
+
+```
+[交易所 APIs] --只读--> [Edge Function] --> [Supabase Postgres]
+                                      \--> [指标视图] --> [告警推送]
+```
+
+这让密钥留在服务端，在一个地方统一遵守各家交易所的限流，并且让看板只是对计算状态的一次纯读取。
+
+## 一个你真能查的指标视图
+
+```sql
+CREATE VIEW account_health AS
+SELECT account,
+       equity,
+       margin_used,
+       CASE WHEN margin_used > 0
+            THEN equity / margin_used ELSE NULL END AS margin_ratio,
+       unrealized
+FROM latest_equity;
+```
+
+> 上面是简化视图。真实实现需要维护 `latest_equity`（每账户最新快照），并叠加历史峰值来算 `max_drawdown`。
+
+## 组合回撤的实战建议
+
+- 采样频率：活跃交易时段每 1–3 分钟一次。再快通常只是增加限流痛苦，抓不到更多风险。
+- 同时看"每网格"和"每账户"两层：每网格告诉你哪个机器人是问题；每账户才是交易所实际动手的真实的强平风险。
+- 把回撤和保证金率一起监控——单独看每日盈亏会让你在悬崖边还以为没事。
+
+## 常见问题
+
+**Q：回撤应该按网格监控还是按账户？**
+A：都要。按网格看得出哪个机器人是问题；按账户看得出你真实的强平风险，那才是交易所动手的对象。
+
+**Q：权益该多久采样一次？**
+A：活跃交易时段每 1–3 分钟。再快通常只是增加限流痛苦，抓不到更多风险。
+
+**Q：SQLite 还是数据库？**
+A：学这个指标，SQLite 就够了。一旦你有多账户且要告警，带服务端拉取的托管 Postgres（如 Supabase）能让你免于 cron 和限流蔓延。
+
+**Q：什么回撤水平该让我警惕？**
+A：看杠杆，但把"向着你的保证金压力区上升的回撤"当成真正的警报——而不是看每日盈亏的正负。
+
+## 不自己造，也能看到
+
+我最后把这一切 consolidate 进了一个视图。[GridLens](https://jbi991.ccwu.cc) 跨 Gate.io、Binance、Bybit 聚合权益与保证金，算回撤和保证金健康度，并推送告警——上面这套架构，已经建好了。
+
+*本文不构成投资建议。合约与网格交易涉及重大亏损风险。请用只读 key 监控，只交易你能承受损失的资金。*

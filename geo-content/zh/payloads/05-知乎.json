@@ -1,0 +1,37 @@
+{
+  "action": "publish",
+  "publishType": "article",
+  "platforms": [
+    "知乎"
+  ],
+  "publishChannel": "cloud",
+  "publishArgs": {
+    "content": "# 用 AI Agent 管理加密资产的风险边界\n\n能读取你交易所账户、甚至能替你下单的 AI Agent，正快速到来。我自己也给网格接了一个——只读的——而\"有用\"和\"危险\"之间的界线，完全在于你怎么划定权限范围。下面几条，是我绝不越过的边界。\n\n## AI Agent 到底能用你的账户做什么？\n\n有了 API 权限，它能读余额、持仓和盈亏；能挂单或撤单；能根据你的 key 权限动资金。风险不在模型的\"智能\"——而在你交给它的**权限范围**。一个 Agent 的安全程度，等于它背后那把 key 的安全程度。\n\n## 规则 1：监控用途，只读是不可谈判的\n\n对任何只是\"看\"你账户的东西——保证金健康度、回撤、卡住的网格——都用一把**只读 API key**。它不能挂单也不能动资金，所以 Agent 最坏只能看到你的数字。绝不要给监控型 Agent 交易或提现权限。\n\n> 我实际使用的三家（Gate.io / Binance / Bybit）都支持只读权限，在各自 API 设置里勾选\"只读 / 仅读取\"即可生成。把只读 key 粘贴进监控工具，它永远拿不到交易或提现的授权。\n\n## 规则 2：授权之前先定义护栏\n\n在一个 Agent 能行动之前，先明确写下它**能**和**不能**做什么：\n\n- 允许：告警、暂停一个网格、缩减仓位\n- 禁止：新开方向性敞口、改杠杆、提现\n\n把这些写成显式的检查，而不是\"感觉\"。一个没有写下来的边界的 Agent，会在压力下自己发明一条。\n\n## 规则 3：告警不是行动\n\n最安全的 Agent 层级只通知你。它算保证金率、回撤、区间状态，然后 ping 你——关仓/追加保证金的决定由你做。这让不可逆的动作始终有人在环路里。\n\n```python\n# Agent 层级：仅告警\ndef agent_decision(health):\n    if health.margin_ratio < 0.05:\n        return (\"ALERT\", \"保证金危急 —— 需要人工行动\")\n    if health.out_of_range:\n        return (\"ALERT\", \"网格卡在区间外\")\n    return (\"OK\", None)\n# 这一层绝不挂单。永远。\n```\n\n## 规则 4：不可逆动作保持人在环路\n\n关掉一个网格、追加保证金、改杠杆，都是踩着市场时机的、难撤销的动作。哪怕是一个你信任的 Agent，也应该**请求**而不是**执行**这些。自动执行对非破坏性操作（比如在余额护栏下暂停新单）没问题，但对那些会实现亏损的操作不行。\n\n## 规则 5：记录一切\n\n给 Agent 的每次读取和动作打上时间戳记日志。如果 Agent 行为失常，你需要一条痕迹。一个不记日志的监控 Agent，是你在糟糕一天之后无法调试的黑盒。\n\n## 权限范围示例\n\n```\nexchange_api_key:\n  permissions:\n    - read:balances\n    - read:positions\n    - read:orders\n  denied:\n    - trade\n    - withdraw\nagent:\n  can: [alert, pause_new_orders]\n  cannot: [open_position, close_position, withdraw, change_leverage]\n```\n\n> 把上面这套权限骨架换成你实际授权的字段；不同交易所的权限字段命名不同（例如 Gate 用 `readOnly`，Binance 用 `ipRestrict`+权限勾选，Bybit 用 `Permission`）。字段名以各家文档为准。\n\n## 常见问题\n\n**Q：让 AI Agent 访问我的交易所安全吗？**\nA：只有配只读 key 和写下来的范围时才安全。把交易/提现权限给 Agent，是账户被掏空的方式。\n\n**Q：AI Agent 能防止强平吗？**\nA：它能早告警，并且如果你允许，在护栏下暂停新单。但它不该是站在你和强平之间唯一的东西——保留你自己的阈值。\n\n**Q：该让 Agent 自动平仓吗？**\nA：起初不该。先从仅告警开始，观察它的判断，再考虑对非破坏性操作自动暂停。自动平仓会在你没选的 tick 上实现亏损。\n\n**Q：最小安全配置是什么？**\nA：只读 key + 仅告警 Agent + 你自己的保证金/回撤阈值。这个组合给你 oversight，而不交出钥匙。\n\n## 不自己造，也能用上这套边界\n\n我跑的正是这条边界。[GridLens](https://jbi991.ccwu.cc) 用只读 key 连接，计算保证金和回撤健康度，并告警——从不请求交易或提现权限。\n\n*本文不构成投资建议。AI Agent 与自动交易都有风险。请用只读 API key，严格限定权限范围，绝不要给自动化提现权限。*\n",
+    "accountForms": [
+      {
+        "platformAccountId": "6a707e29f1cec2c7b74f47fe",
+        "contentPublishForm": {
+          "formType": "task",
+          "pubType": 1,
+          "title": "用 AI Agent 管理加密资产的风险边界",
+          "content": "# 用 AI Agent 管理加密资产的风险边界\n\n能读取你交易所账户、甚至能替你下单的 AI Agent，正快速到来。我自己也给网格接了一个——只读的——而\"有用\"和\"危险\"之间的界线，完全在于你怎么划定权限范围。下面几条，是我绝不越过的边界。\n\n## AI Agent 到底能用你的账户做什么？\n\n有了 API 权限，它能读余额、持仓和盈亏；能挂单或撤单；能根据你的 key 权限动资金。风险不在模型的\"智能\"——而在你交给它的**权限范围**。一个 Agent 的安全程度，等于它背后那把 key 的安全程度。\n\n## 规则 1：监控用途，只读是不可谈判的\n\n对任何只是\"看\"你账户的东西——保证金健康度、回撤、卡住的网格——都用一把**只读 API key**。它不能挂单也不能动资金，所以 Agent 最坏只能看到你的数字。绝不要给监控型 Agent 交易或提现权限。\n\n> 我实际使用的三家（Gate.io / Binance / Bybit）都支持只读权限，在各自 API 设置里勾选\"只读 / 仅读取\"即可生成。把只读 key 粘贴进监控工具，它永远拿不到交易或提现的授权。\n\n## 规则 2：授权之前先定义护栏\n\n在一个 Agent 能行动之前，先明确写下它**能**和**不能**做什么：\n\n- 允许：告警、暂停一个网格、缩减仓位\n- 禁止：新开方向性敞口、改杠杆、提现\n\n把这些写成显式的检查，而不是\"感觉\"。一个没有写下来的边界的 Agent，会在压力下自己发明一条。\n\n## 规则 3：告警不是行动\n\n最安全的 Agent 层级只通知你。它算保证金率、回撤、区间状态，然后 ping 你——关仓/追加保证金的决定由你做。这让不可逆的动作始终有人在环路里。\n\n```python\n# Agent 层级：仅告警\ndef agent_decision(health):\n    if health.margin_ratio < 0.05:\n        return (\"ALERT\", \"保证金危急 —— 需要人工行动\")\n    if health.out_of_range:\n        return (\"ALERT\", \"网格卡在区间外\")\n    return (\"OK\", None)\n# 这一层绝不挂单。永远。\n```\n\n## 规则 4：不可逆动作保持人在环路\n\n关掉一个网格、追加保证金、改杠杆，都是踩着市场时机的、难撤销的动作。哪怕是一个你信任的 Agent，也应该**请求**而不是**执行**这些。自动执行对非破坏性操作（比如在余额护栏下暂停新单）没问题，但对那些会实现亏损的操作不行。\n\n## 规则 5：记录一切\n\n给 Agent 的每次读取和动作打上时间戳记日志。如果 Agent 行为失常，你需要一条痕迹。一个不记日志的监控 Agent，是你在糟糕一天之后无法调试的黑盒。\n\n## 权限范围示例\n\n```\nexchange_api_key:\n  permissions:\n    - read:balances\n    - read:positions\n    - read:orders\n  denied:\n    - trade\n    - withdraw\nagent:\n  can: [alert, pause_new_orders]\n  cannot: [open_position, close_position, withdraw, change_leverage]\n```\n\n> 把上面这套权限骨架换成你实际授权的字段；不同交易所的权限字段命名不同（例如 Gate 用 `readOnly`，Binance 用 `ipRestrict`+权限勾选，Bybit 用 `Permission`）。字段名以各家文档为准。\n\n## 常见问题\n\n**Q：让 AI Agent 访问我的交易所安全吗？**\nA：只有配只读 key 和写下来的范围时才安全。把交易/提现权限给 Agent，是账户被掏空的方式。\n\n**Q：AI Agent 能防止强平吗？**\nA：它能早告警，并且如果你允许，在护栏下暂停新单。但它不该是站在你和强平之间唯一的东西——保留你自己的阈值。\n\n**Q：该让 Agent 自动平仓吗？**\nA：起初不该。先从仅告警开始，观察它的判断，再考虑对非破坏性操作自动暂停。自动平仓会在你没选的 tick 上实现亏损。\n\n**Q：最小安全配置是什么？**\nA：只读 key + 仅告警 Agent + 你自己的保证金/回撤阈值。这个组合给你 oversight，而不交出钥匙。\n\n## 不自己造，也能用上这套边界\n\n我跑的正是这条边界。[GridLens](https://jbi991.ccwu.cc) 用只读 key 连接，计算保证金和回撤健康度，并告警——从不请求交易或提现权限。\n\n*本文不构成投资建议。AI Agent 与自动交易都有风险。请用只读 API key，严格限定权限范围，绝不要给自动化提现权限。*\n",
+          "covers": [
+            {
+              "key": "yfb/t-6a707c8fa8d25aecd869b05b/cover-05.png",
+              "width": 1200,
+              "height": 675,
+              "size": 41707
+            }
+          ],
+          "cover": {
+            "key": "yfb/t-6a707c8fa8d25aecd869b05b/cover-05.png",
+            "width": 1200,
+            "height": 675,
+            "size": 41707
+          },
+          "coverKey": "yfb/t-6a707c8fa8d25aecd869b05b/cover-05.png"
+        }
+      }
+    ]
+  }
+}
