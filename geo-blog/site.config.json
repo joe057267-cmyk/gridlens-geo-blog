@@ -1,9 +1,9 @@
 {
   "giscus": {
-    "repo": "YOUR_GITHUB_USER/YOUR_REPO",
-    "repoId": "YOUR_REPO_ID",
+    "repo": "joe057267-cmyk/gridlens-geo-blog",
+    "repoId": "1322756263",
     "category": "Announcements",
-    "categoryId": "YOUR_CATEGORY_ID",
+    "categoryId": "REPLACE_WITH_CATEGORY_ID",
     "mapping": "pathname",
     "lang": "zh-CN"
   },
