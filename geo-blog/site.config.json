@@ -8,7 +8,11 @@
     "lang": "zh-CN"
   },
   "newsletter": {
-    "action": "https://YOUR_LIST.us21.list-manage.com/subscribe/post?u=XXXX&id=YYYY",
-    "provider": "mailchimp"
+    "enabled": false,
+    "action": "/api/subscribe",
+    "provider": "resend",
+    "from": "onboarding@resend.dev",
+    "welcome_subject": "Welcome to GridLens GEO updates",
+    "welcome_html": "<p>Thanks for subscribing to GridLens GEO updates. We'll email you when we publish new grid-trading risk notes and monitoring guides.</p><p>You're receiving this because you subscribed at gridlens-geo-blog.vercel.app. Unsubscribe anytime by replying.</p>"
   }
 }

@@ -36,6 +36,32 @@ async function createProject() {
   process.exit(1)
 }
 
+async function getProjectId() {
+  const r = await fetch(`${api}/v9/projects?limit=100`, { headers: auth })
+  const j = await r.json()
+  const p = (j.projects || []).find((x) => x.name === PROJECT_NAME)
+  return p ? p.id : null
+}
+
+async function setEnv(projectId, key, value) {
+  if (!projectId || !value) { console.log(`==> skip env ${key} (empty)`); return }
+  const listR = await fetch(`${api}/v10/projects/${projectId}/env`, { headers: auth })
+  const list = await listR.json()
+  const existing = (list.envs || []).find((e) => e.key === key)
+  const body = { key, value, type: 'encrypted', target: ['production'] }
+  let r, verb
+  if (existing) {
+    r = await fetch(`${api}/v10/projects/${projectId}/env/${existing.id}`, {
+      method: 'PATCH', headers: { ...auth, 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    }); verb = 'updated'
+  } else {
+    r = await fetch(`${api}/v10/projects/${projectId}/env`, {
+      method: 'POST', headers: { ...auth, 'Content-Type': 'application/json' }, body: JSON.stringify(body),
+    }); verb = 'created'
+  }
+  console.log(`==> env ${key} ${verb}: ${r.status}`)
+}
+
 function walk(dir) {
   const out = []
   for (const n of readdirSync(dir)) {
@@ -53,6 +79,12 @@ const files = walk(DIST).map((f) => ({
 console.log(`==> ${files.length} files inlined`)
 
 await createProject()
+
+// inject server-side secrets as Vercel env vars (kept out of client code & files)
+const pid = await getProjectId()
+await setEnv(pid, 'RESEND_API_KEY', process.env.RESEND_API_KEY || '')
+await setEnv(pid, 'RESEND_FROM', process.env.RESEND_FROM || '')
+await setEnv(pid, 'RESEND_AUDIENCE_ID', process.env.RESEND_AUDIENCE_ID || '')
 
 console.log('==> creating production deployment')
 const cr = await fetch(`${api}/v13/deployments?skipAutoDetectionConfirmation=1`, {

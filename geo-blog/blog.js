@@ -109,6 +109,42 @@
     }
   } catch (e) { /* no-op */ }
 
+  // ---- Newsletter (Resend /api/subscribe) ----
+  try {
+    var nlForm = doc.querySelector('form[data-newsletter]')
+    if (nlForm) {
+      var nlAction = nlForm.getAttribute('action') || ''
+      var nlStatus = nlForm.querySelector('.nl-status')
+      if (nlAction.indexOf('/api/') === 0) {
+        nlForm.addEventListener('submit', function (e) {
+          e.preventDefault()
+          var emailEl = nlForm.querySelector('input[type="email"]')
+          var email = emailEl ? emailEl.value.trim() : ''
+          if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+            if (nlStatus) { nlStatus.className = 'nl-status err'; nlStatus.textContent = '请输入有效邮箱' }
+            return
+          }
+          if (nlStatus) { nlStatus.className = 'nl-status'; nlStatus.textContent = '提交中…' }
+          fetch(nlAction, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: email }),
+          }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j } }) })
+            .then(function (o) {
+              if (o.ok && o.j && o.j.ok) {
+                if (nlStatus) { nlStatus.className = 'nl-status ok'; nlStatus.textContent = (o.j.message || '已订阅，请查收确认邮件') }
+                if (emailEl) emailEl.value = ''
+              } else {
+                if (nlStatus) { nlStatus.className = 'nl-status err'; nlStatus.textContent = (o.j && o.j.error) || '订阅失败，请稍后再试' }
+              }
+            }).catch(function () {
+              if (nlStatus) { nlStatus.className = 'nl-status err'; nlStatus.textContent = '网络错误，请稍后再试' }
+            })
+        })
+      }
+    }
+  } catch (e) { /* no-op */ }
+
   function escapeHtml(s) {
     return String(s).replace(/[&<>"']/g, function (c) {
       return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]

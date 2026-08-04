@@ -5,7 +5,7 @@
 // basename), server-rendered TOC + related posts, tag pages, a search index,
 // a Giscus comments container and a newsletter form.
 import { readdirSync, readFileSync, writeFileSync, mkdirSync, existsSync, copyFileSync, statSync } from 'node:fs'
-import { join, dirname } from 'node:path'
+import { join, dirname, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { marked } from 'marked'
 
@@ -148,6 +148,9 @@ a{color:var(--accent)}
 .newsletter label{flex:1 1 200px;font-weight:600}
 .newsletter input{flex:1 1 200px;padding:8px 12px;border:1px solid var(--border);border-radius:8px;background:var(--bg);color:var(--fg)}
 .newsletter button{background:var(--accent);color:#fff;border:none;border-radius:8px;padding:8px 16px;cursor:pointer}
+.newsletter .nl-status{flex:1 1 100%;font-size:13px;min-height:16px}
+.newsletter .nl-status.ok{color:var(--ok,#1a7f37)}
+.newsletter .nl-status.err{color:var(--err,#cf222e)}
 .cards{display:grid;gap:16px;margin-top:24px}
 .card{border:1px solid var(--border);border-radius:12px;padding:18px 20px;text-decoration:none;color:inherit;display:block;transition:border-color .15s;background:var(--card)}
 .card:hover{border-color:var(--accent)}
@@ -198,17 +201,19 @@ function commentsSection() {
     `data-reactions-enabled="1"`,
     `data-emit-metadata="0"`,
   ].join(' ')
-  const inner = ready
-    ? `<button class="load-comments">加载评论</button>`
-    : `<p class="note">评论功能待启用：请在 <code>site.config.json</code> 填写 Giscus 的 repo / repoId / categoryId，并在对应 GitHub 仓库安装 Giscus App。</p>`
+  if (!ready) return ''
+  const inner = `<button class="load-comments">加载评论</button>`
   return `<section id="comments" class="comments" ${attrs}>${inner}</section>`
 }
 function newsletterSection() {
+  if (NL.enabled === false) return ''
   const action = NL.action && !/example/i.test(NL.action) ? NL.action : '#'
-  return `<form class="newsletter" action="${esc(action)}" method="post" target="_blank" rel="noopener">
+  const local = action.startsWith('/api/')
+  return `<form class="newsletter" data-newsletter action="${esc(action)}" method="post"${local ? '' : ' target="_blank" rel="noopener"'}>
   <label>订阅 GridLens 博客更新</label>
-  <input type="email" name="EMAIL" placeholder="you@example.com" required>
+  <input type="email" name="email" placeholder="you@example.com" required>
   <button type="submit">订阅</button>
+  <span class="nl-status" aria-live="polite"></span>
 </form>`
 }
 
@@ -258,7 +263,7 @@ ${relatedHtml}
 ${newsletterSection()}
 ${commentsSection()}
 </main>
-<footer class="site">GridLens 是一个只读加密货币网格监控工具。 <a href="https://gridlens.vercel.app">免费试用</a>。非投资建议——仅用可承受损失的资金交易。</footer>
+<footer class="site">GridLens 是一个只读加密货币网格监控工具。 <a href="https://gridlens-scaffold.vercel.app/">免费试用</a>。非投资建议——仅用可承受损失的资金交易。</footer>
 </body>
 </html>`
 }
@@ -299,7 +304,7 @@ ${lang === 'zh' ? `<link rel="alternate" hreflang="en" href="${SITE_URL}/">\n<li
 <div class="tagindex">${tagIndex}</div>
 <div class="cards">${cards}</div>
 </main>
-<footer class="site">GridLens 是一个只读加密货币网格监控工具。 <a href="https://gridlens.vercel.app">免费试用</a>。非投资建议。</footer>
+<footer class="site">GridLens 是一个只读加密货币网格监控工具。 <a href="https://gridlens-scaffold.vercel.app/">免费试用</a>。非投资建议。</footer>
 </body>
 </html>`
 }
@@ -326,7 +331,7 @@ function tagPage(tag, articles) {
 <div class="cards">${cards}</div>
 <p style="margin-top:24px"><a href="/">← 返回首页</a></p>
 </main>
-<footer class="site">GridLens is a read-only crypto grid monitoring tool. <a href="https://gridlens.vercel.app">Try it free</a>. Not financial advice.</footer>
+<footer class="site">GridLens is a read-only crypto grid monitoring tool. <a href="https://gridlens-scaffold.vercel.app/">Try it free</a>. Not financial advice.</footer>
 </body>
 </html>`
 }
@@ -419,5 +424,26 @@ console.log(`==> search.json (${searchIdx.length})`)
 
 // copy client script
 if (existsSync(join(__dirname, 'blog.js'))) { copyFileSync(join(__dirname, 'blog.js'), join(OUT, 'blog.js')); console.log('==> blog.js copied') }
+
+// copy serverless api functions (become /api/* on Vercel)
+const API_SRC = join(__dirname, 'api')
+if (existsSync(API_SRC)) {
+  const walkDir = (d) => {
+    const out = []
+    for (const n of readdirSync(d)) {
+      const f = join(d, n)
+      if (statSync(f).isDirectory()) out.push(...walkDir(f))
+      else out.push(f)
+    }
+    return out
+  }
+  for (const f of walkDir(API_SRC)) {
+    const rel = relative(API_SRC, f).split(sep).join('/')
+    const dest = join(OUT, 'api', rel)
+    mkdirSync(dirname(dest), { recursive: true })
+    copyFileSync(f, dest)
+    console.log(`==> api/${rel} copied`)
+  }
+}
 
 console.log('BUILD OK')

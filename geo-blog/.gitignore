@@ -1,0 +1,4 @@
+.vercel
+*.bak_*
+_test_fn2.mjs
+
