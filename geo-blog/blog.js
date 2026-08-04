@@ -71,7 +71,7 @@
     }
   } catch (e) { /* no-op */ }
 
-  // ---- Giscus lazy-load ----
+  // ---- Utterances lazy-load (GitHub Issues based) ----
   try {
     var box = doc.getElementById('comments')
     if (box) {
@@ -80,28 +80,22 @@
       var ready = repo && !/YOUR_|example/i.test(repo)
       if (ready && btn) {
         var loaded = false
-        function loadGiscus() {
+        function loadUtterances() {
           if (loaded) return; loaded = true
           var s = doc.createElement('script')
-          s.src = 'https://giscus.app/client.js'
+          s.src = 'https://utteranc.es/client.js'
           s.async = true; s.crossOrigin = 'anonymous'
           s.dataset.repo = box.getAttribute('data-repo')
-          s.dataset.repoId = box.getAttribute('data-repo-id')
-          s.dataset.category = box.getAttribute('data-category')
-          s.dataset.categoryId = box.getAttribute('data-category-id')
-          s.dataset.mapping = box.getAttribute('data-mapping') || 'pathname'
-          s.dataset.reactionsEnabled = box.getAttribute('data-reactions-enabled') || '1'
-          s.dataset.emitMetadata = box.getAttribute('data-emit-metadata') || '0'
-          s.dataset.inputPosition = 'bottom'
-          s.dataset.lang = box.getAttribute('data-lang') || 'zh-CN'
-          s.dataset.theme = box.getAttribute('data-theme') || 'prefers_color_scheme'
+          s.dataset.issueTerm = box.getAttribute('data-issue-term') || 'pathname'
+          s.dataset.label = box.getAttribute('data-label') || 'comment'
+          s.dataset.theme = box.getAttribute('data-theme') || 'preferred-color-scheme'
           box.appendChild(s)
           if (btn) btn.remove()
         }
-        btn.addEventListener('click', loadGiscus)
+        btn.addEventListener('click', loadUtterances)
         if ('IntersectionObserver' in window) {
           var co = new IntersectionObserver(function (es) {
-            es.forEach(function (e) { if (e.isIntersecting) { loadGiscus(); co.disconnect() } })
+            es.forEach(function (e) { if (e.isIntersecting) { loadUtterances(); co.disconnect() } })
           }, { rootMargin: '200px' })
           co.observe(box)
         }

@@ -1,11 +1,9 @@
 {
-  "giscus": {
+  "utterances": {
     "repo": "joe057267-cmyk/gridlens-geo-blog",
-    "repoId": "1322756263",
-    "category": "Announcements",
-    "categoryId": "DIC_kwDOTteop84DCp1t",
-    "mapping": "pathname",
-    "lang": "zh-CN"
+    "issueTerm": "pathname",
+    "label": "comment",
+    "theme": "preferred-color-scheme"
   },
   "newsletter": {
     "enabled": false,

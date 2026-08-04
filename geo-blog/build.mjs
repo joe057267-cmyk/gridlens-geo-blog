@@ -17,10 +17,10 @@ const SITE_URL = process.env.SITE_URL || 'https://gridlens-geo-blog.vercel.app'
 const SITE_NAME = 'GridLens Blog'
 const PUBLISH_DATE = '2026-08-01'
 
-// --- site config (giscus + newsletter). Placeholders until filled by owner. ---
-let SITE = { giscus: {}, newsletter: {} }
+// --- site config (utterances + newsletter). Placeholders until filled by owner. ---
+let SITE = { utterances: {}, newsletter: {} }
 try { SITE = JSON.parse(readFileSync(join(__dirname, 'site.config.json'), 'utf8')) } catch {}
-const G = SITE.giscus || {}
+const G = SITE.utterances || {}
 const NL = SITE.newsletter || {}
 
 mkdirSync(join(OUT, 'zh'), { recursive: true })
@@ -192,14 +192,9 @@ function commentsSection() {
   const ready = G.repo && !/YOUR_|example/i.test(G.repo || '')
   const attrs = [
     `data-repo="${esc(G.repo || '')}"`,
-    `data-repo-id="${esc(G.repoId || '')}"`,
-    `data-category="${esc(G.category || 'Announcements')}"`,
-    `data-category-id="${esc(G.categoryId || '')}"`,
-    `data-mapping="${esc(G.mapping || 'pathname')}"`,
-    `data-lang="${esc(G.lang || 'zh-CN')}"`,
-    `data-theme="prefers_color_scheme"`,
-    `data-reactions-enabled="1"`,
-    `data-emit-metadata="0"`,
+    `data-issue-term="${esc(G.issueTerm || 'pathname')}"`,
+    `data-label="${esc(G.label || 'comment')}"`,
+    `data-theme="${esc(G.theme || 'preferred-color-scheme')}"`,
   ].join(' ')
   if (!ready) return ''
   const inner = `<button class="load-comments">加载评论</button>`
